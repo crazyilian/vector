@@ -98,6 +98,10 @@ public:
     void shrink_to_fit();
 
     void push_back(const value_type &new_element);
+    void push_back(value_type &&new_element);
+    template<typename... Args>
+    void emplace_back(Args &&... args);
+
     void insert(iterator pos, const value_type &new_element);
     void pop_back();
     void erase(iterator pos);
@@ -334,6 +338,9 @@ Vector<T> &Vector<T>::operator=(const Vector &other) {
 
 template<typename T>
 Vector<T>::~Vector() {
+    for (size_t i = 0; i < size_; ++i) {
+        (begin_.pointer + i)->~T();
+    }
     free(begin_.pointer);
 }
 
@@ -432,11 +439,23 @@ void Vector<T>::shrink_to_fit() {
 
 template<typename T>
 void Vector<T>::push_back(const T &new_element) {
+    emplace_back(new_element);
+}
+
+template<typename T>
+void Vector<T>::push_back(T &&new_element) {
+    emplace_back(std::move(new_element));
+}
+
+template<typename T>
+template<typename... Args>
+void Vector<T>::emplace_back(Args &&... args) {
     if (size_ == capacity_) {
         reserve(capacity_ == 0 ? 1 : capacity_ * 2);
     }
-    (*this)[size_++] = new_element;
+    new(begin_.pointer + size_++) T(std::forward<Args>(args)...);
 }
+
 
 template<typename T>
 void Vector<T>::insert(const iterator pos, const T &new_element) {
